@@ -1,0 +1,8 @@
+streamlit
+pymupdf
+python-docx
+pdf2image
+pytesseract
+openai
+python-dotenv
+tesseract-ocr

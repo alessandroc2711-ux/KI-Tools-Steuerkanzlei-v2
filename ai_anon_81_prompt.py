@@ -180,7 +180,10 @@ if st.sidebar.button("Wörterbuch speichern"):
             new_dict[key.strip()] = value.strip()
     st.session_state.dictionary = dict(sorted(new_dict.items()))
     save_dictionary(st.session_state.dictionary)
-    st.sidebar.success("Wörterbuch gespeichert")
+    # Aggiorna immediatamente il testo anonimo dopo il salvataggio
+    if st.session_state.original_text:
+        st.session_state.anonymized_text = anonymize_text(st.session_state.original_text, st.session_state.dictionary)
+    st.sidebar.success("Wörterbuch gespeichert und Text aktualisiert")
 
 # ======================================
 # STEP 1 – FILE UPLOAD

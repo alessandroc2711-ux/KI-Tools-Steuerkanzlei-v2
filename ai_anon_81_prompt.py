@@ -81,25 +81,33 @@ def extract_pdf_text(file_pdf):
     content = file_pdf.read()
     pdf = fitz.open(stream=content, filetype="pdf")
     text = "".join(page.get_text() for page in pdf)
+
     if text.strip():
         return text
-    # OCR fallback
+
     images = convert_from_bytes(content)
-    text = "\n".join(pytesseract.image_to_string(img, lang="deu") for img in images)
+    text = "\n".join(
+        pytesseract.image_to_string(img, lang="deu")
+        for img in images
+    )
     return text
 
 def extract_word_text(file_docx):
     file_docx.seek(0)
     doc = Document(file_docx)
-    return "\n".join(para.text for para in doc.paragraphs)
+    return "\n".join(
+        para.text for para in doc.paragraphs
+    )
 
 # ======================================
 # WORD EXPORT
 # ======================================
 def create_word(text, filename="document_anon.docx"):
     doc = Document()
+
     for line in text.split("\n"):
         doc.add_paragraph(line)
+
     doc.save(filename)
     return filename
 
@@ -110,25 +118,62 @@ def build_tax_prompt(case_text):
     prompt = f"""
 Du bist ein Senior-Steuerberater einer führenden deutschen Steuerkanzlei.
 
-Erstelle eine belastbare steuerrechtliche Fachanalyse.
+Erstelle eine steuerrechtliche Fachanalyse IMMER in exakt dem folgenden Format.
+Die Struktur, Überschriften und Reihenfolge dürfen niemals verändert werden.
+
+Verwende ausschließlich diese Formatvorlage:
+
+# Executive Summary
+Kurzfassung in 3–5 Sätzen.
+
+# Steuerrechtliche Fragestellung
+- Punkt 1
+- Punkt 2
+- Punkt 3
+
+# Anwendbare Normen
+| Norm | Relevanz | Bewertung |
+|---|---|---|
+| Paragraph | kurze Erklärung | hoch / mittel / niedrig |
+
+# Relevante BFH / FG Urteile
+| Urteil | Kernaussage | Relevanz für Fall |
+|---|---|---|
+
+# Expertenbewertung
+Ausführliche fachliche Einschätzung in Fließtext.
+
+# Risikoanalyse
+| Bereich | Risiko | Begründung |
+|---|---|---|
+| Steuerlich | niedrig / mittel / hoch | Erklärung |
+| Dokumentation | niedrig / mittel / hoch | Erklärung |
+| Betriebsprüfung | niedrig / mittel / hoch | Erklärung |
+
+# Handlungsempfehlung
+1. Empfehlung
+2. Empfehlung
+3. Empfehlung
+
+# Nächste Schritte für die Kanzlei
+1. Sofortmaßnahme
+2. Mandanten-Rückfrage
+3. Dokumentationsschritt
+4. Frist / Deadline
+
+WICHTIGE REGELN:
+- Immer exakt dieselben Überschriften verwenden
+- Immer dieselbe Reihenfolge
+- Tabellenformat IMMER beibehalten
+- Keine zusätzlichen Kapitel
+- Keine Abweichungen
+- Antwort ausschließlich auf Deutsch
+- professioneller Kanzlei-Stil
+- juristisch präzise
+- mandantenorientiert
 
 Mandantenfall:
 {case_text}
-
-Bitte strukturiert beantworten:
-
-1. Executive Summary
-2. Steuerrechtliche Fragestellung
-3. Anwendbare Normen (mit Paragraphen)
-4. Relevante BFH / FG Urteile
-5. Expertenkommentare
-6. Risikoanalyse (niedrig / mittel / hoch)
-7. Konkrete Handlungsempfehlung
-8. Empfohlene nächste Schritte für die Kanzlei
-
-Bitte juristisch präzise, mandantenorientiert und praxisnah.
-
-Antwort ausschließlich auf Deutsch.
 """
     return prompt
 
@@ -136,7 +181,10 @@ Antwort ausschließlich auf Deutsch.
 # OPENAI CALL
 # ======================================
 def run_ai_analysis(prompt):
-    response = client.responses.create(model="gpt-4.1", input=prompt)
+    response = client.responses.create(
+        model="gpt-4.1",
+        input=prompt
+    )
     return response.output_text
 
 # ======================================
@@ -144,8 +192,10 @@ def run_ai_analysis(prompt):
 # ======================================
 if "dictionary" not in st.session_state:
     st.session_state.dictionary = load_dictionary()
+
 if "original_text" not in st.session_state:
     st.session_state.original_text = ""
+
 if "anonymized_text" not in st.session_state:
     st.session_state.anonymized_text = ""
 
@@ -153,72 +203,142 @@ if "anonymized_text" not in st.session_state:
 # SIDEBAR – Wörterbuch
 # ======================================
 st.sidebar.header("Anonymisierungs-Wörterbuch")
-st.sidebar.markdown("Format: `Original = Ersatz`\n\nBeispiel:  `BMW AG = FirmaX`")
-dictionary_text = "\n".join(f"{k} = {v}" for k, v in sorted(st.session_state.dictionary.items()))
-edited_dictionary_text = st.sidebar.text_area("Wörterbuch bearbeiten", value=dictionary_text, height=300)
+st.sidebar.markdown(
+    "Format: `Original = Ersatz`\n\nBeispiel: `BMW AG = FirmaX`"
+)
+
+dictionary_text = "\n".join(
+    f"{k} = {v}"
+    for k, v in sorted(
+        st.session_state.dictionary.items()
+    )
+)
+
+edited_dictionary_text = st.sidebar.text_area(
+    "Wörterbuch bearbeiten",
+    value=dictionary_text,
+    height=300
+)
 
 if st.sidebar.button("Wörterbuch speichern"):
     new_dict = {}
+
     for line in edited_dictionary_text.split("\n"):
         if "=" in line:
             key, value = line.split("=", 1)
             new_dict[key.strip()] = value.strip()
-    st.session_state.dictionary = dict(sorted(new_dict.items()))
-    save_dictionary(st.session_state.dictionary)
+
+    st.session_state.dictionary = dict(
+        sorted(new_dict.items())
+    )
+
+    save_dictionary(
+        st.session_state.dictionary
+    )
+
     if st.session_state.original_text:
-        st.session_state.anonymized_text = anonymize_text(st.session_state.original_text, st.session_state.dictionary)
-    st.sidebar.success("Wörterbuch gespeichert und Text aktualisiert")
+        st.session_state.anonymized_text = anonymize_text(
+            st.session_state.original_text,
+            st.session_state.dictionary
+        )
+
+    st.sidebar.success(
+        "Wörterbuch gespeichert und Text aktualisiert"
+    )
 
 # ======================================
 # STEP 1 – FILE UPLOAD
 # ======================================
 st.header("1. Dokument Upload")
-uploaded_file = st.file_uploader("PDF oder Word auswählen", type=["pdf", "docx"])
+
+uploaded_file = st.file_uploader(
+    "PDF oder Word auswählen",
+    type=["pdf", "docx"]
+)
+
 if uploaded_file is not None and st.button("Dokument verarbeiten"):
     if uploaded_file.name.endswith(".pdf"):
         text = extract_pdf_text(uploaded_file)
     else:
         text = extract_word_text(uploaded_file)
+
     st.session_state.original_text = text
-    st.session_state.anonymized_text = anonymize_text(text, st.session_state.dictionary)
+    st.session_state.anonymized_text = anonymize_text(
+        text,
+        st.session_state.dictionary
+    )
 
 # ======================================
-# STEP 2 – TEXT ANZEIGE & BEARBEITUNG
+# STEP 2 – TEXT ANZEIGE
 # ======================================
 if st.session_state.original_text:
     st.subheader("Originaltext")
-    st.text_area("Original", st.session_state.original_text, height=200)
+    st.text_area(
+        "Original",
+        st.session_state.original_text,
+        height=200
+    )
 
 if st.session_state.anonymized_text:
     st.subheader("Anonymisierter Text")
+
     st.session_state.anonymized_text = st.text_area(
         "Bearbeitbarer Text – eine automatische Bearbeitung erfolgt basierend auf dem Anonymisierungs-Wörterbuch",
         st.session_state.anonymized_text,
         height=300
     )
+
     if st.button("Text erneut anonymisieren"):
-        st.session_state.anonymized_text = anonymize_text(st.session_state.original_text, st.session_state.dictionary)
+        st.session_state.anonymized_text = anonymize_text(
+            st.session_state.original_text,
+            st.session_state.dictionary
+        )
         st.success("Text aktualisiert")
-    filename = create_word(st.session_state.anonymized_text)
+
+    filename = create_word(
+        st.session_state.anonymized_text
+    )
+
     with open(filename, "rb") as f:
-        st.download_button("Word herunterladen", data=f, file_name=filename)
+        st.download_button(
+            "Word herunterladen",
+            data=f,
+            file_name=filename
+        )
 
 # ======================================
-# STEP 3 – STEUERLICHE ANALYSE
+# STEP 3 – ANALYSE
 # ======================================
 if st.session_state.anonymized_text:
     st.header("2. Steuerliche Analyse")
-    st.info("Das Tool erstellt eine vollständige steuerliche Auswertung des anonymisierten Falls.")
+
+    st.info(
+        "Das Tool erstellt eine standardisierte steuerliche Auswertung des anonymisierten Falls."
+    )
+
     if st.button("Analyse starten"):
         with st.spinner("Analyse läuft..."):
-            prompt = build_tax_prompt(st.session_state.anonymized_text)
+            prompt = build_tax_prompt(
+                st.session_state.anonymized_text
+            )
+
             result = run_ai_analysis(prompt)
+
         st.success("Analyse abgeschlossen")
+
         st.subheader("Analyseergebnis")
         st.markdown(result)
 
-        # Pulsante per scaricare l’analisi come Word
         filename_analysis = "Analyseergebnis.docx"
-        create_word(result, filename=filename_analysis)
+
+        create_word(
+            result,
+            filename=filename_analysis
+        )
+
         with open(filename_analysis, "rb") as f:
-            st.download_button("Analyse als Word herunterladen", data=f, file_name=filename_analysis)
+            st.download_button(
+                "Analyse als Word herunterladen",
+                data=f,
+                file_name=filename_analysis
+            )

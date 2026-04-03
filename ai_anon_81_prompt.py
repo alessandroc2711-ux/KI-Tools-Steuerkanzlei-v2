@@ -103,15 +103,6 @@ def create_word(text, filename="document_anon.docx"):
     doc.save(filename)
     return filename
 
-def create_checklist_word(checklist_items, filename="checklist.docx"):
-    doc = Document()
-    doc.add_paragraph("KanzleiOptimierer – Aufgaben-Checkliste\n")
-    for task, checked in checklist_items.items():
-        symbol = "☑" if checked else "☐"
-        doc.add_paragraph(f"{symbol} {task}")
-    doc.save(filename)
-    return filename
-
 # ======================================
 # PROMPT ENGINEERING
 # ======================================
@@ -149,22 +140,6 @@ def run_ai_analysis(prompt):
     return response.output_text
 
 # ======================================
-# CHECKLIST PARSING
-# ======================================
-def parse_checklist(result_text):
-    checklist = {}
-    if "Empfohlene nächste Schritte für die Kanzlei" in result_text:
-        checklist_text = result_text.split("Empfohlene nächste Schritte für die Kanzlei")[-1]
-        for line in checklist_text.split("\n"):
-            task = line.strip()
-            if not task or task.lower() in ["**", "zusammenfassende position:"]:
-                continue
-            if all(c in "*-: " for c in task):
-                continue
-            checklist[task] = False
-    return checklist
-
-# ======================================
 # SESSION STATE
 # ======================================
 if "dictionary" not in st.session_state:
@@ -173,8 +148,6 @@ if "original_text" not in st.session_state:
     st.session_state.original_text = ""
 if "anonymized_text" not in st.session_state:
     st.session_state.anonymized_text = ""
-if "checklist" not in st.session_state:
-    st.session_state.checklist = {}
 
 # ======================================
 # SIDEBAR – Wörterbuch
@@ -244,24 +217,8 @@ if st.session_state.anonymized_text:
         st.subheader("Analyseergebnis")
         st.markdown(result)
 
-        # Aggiorna checklist
-        st.session_state.checklist.update(parse_checklist(result))
-
         # Pulsante per scaricare l’analisi come Word
         filename_analysis = "Analyseergebnis.docx"
         create_word(result, filename=filename_analysis)
         with open(filename_analysis, "rb") as f:
             st.download_button("Analyse als Word herunterladen", data=f, file_name=filename_analysis)
-
-# ======================================
-# STEP 4 – DYNAMISCHE CHECKLIST
-# ======================================
-st.header("3. Aufgaben-Checkliste")
-st.markdown("Aktivieren Sie die Tasks, die erledigt sind:")
-for task in list(st.session_state.checklist.keys()):
-    st.session_state.checklist[task] = st.checkbox(task, value=st.session_state.checklist[task])
-
-if st.button("Checkliste als Word herunterladen"):
-    checklist_file = create_checklist_word(st.session_state.checklist)
-    with open(checklist_file, "rb") as f:
-        st.download_button("Download Checklist", data=f, file_name=checklist_file)

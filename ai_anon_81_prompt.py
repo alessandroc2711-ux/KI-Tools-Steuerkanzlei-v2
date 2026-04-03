@@ -19,17 +19,14 @@ from openai import OpenAI
 # ======================================
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
-
 if not API_KEY:
     raise ValueError("OPENAI_API_KEY nicht gefunden. Bitte .env prüfen.")
-
 client = OpenAI(api_key=API_KEY)
 
 # ======================================
 # CONFIG
 # ======================================
 DICT_FILE = "dictionary.json"
-
 DEFAULT_DICT = {
     "Alessandro Codazzi": "MitarbeiterX",
     "Firma AG": "FirmaY",
@@ -40,13 +37,8 @@ DEFAULT_DICT = {
 # ======================================
 # STREAMLIT CONFIG
 # ======================================
-st.set_page_config(
-    page_title="TaxPilot AI",
-    layout="wide"
-)
-
+st.set_page_config(page_title="TaxPilot AI", layout="wide")
 st.title("TaxPilot AI – KI Assistent für Steuerkanzleien")
-
 st.markdown("""
 Willkommen bei **TaxPilot AI**.
 
@@ -77,10 +69,9 @@ def save_dictionary(dictionary):
         json.dump(sorted_dict, f, indent=4, ensure_ascii=False)
 
 def anonymize_text(text, dictionary):
-    result = text
     for original, replacement in dictionary.items():
-        result = result.replace(original, replacement)
-    return result
+        text = text.replace(original, replacement)
+    return text
 
 # ======================================
 # FILE EXTRACTION
@@ -154,11 +145,23 @@ Antwort ausschließlich auf Deutsch.
 # OPENAI CALL
 # ======================================
 def run_ai_analysis(prompt):
-    response = client.responses.create(
-        model="gpt-4.1",
-        input=prompt
-    )
+    response = client.responses.create(model="gpt-4.1", input=prompt)
     return response.output_text
+
+# ======================================
+# CHECKLIST PARSING
+# ======================================
+def parse_checklist(result_text):
+    checklist = {}
+    if "Empfohlene nächste Schritte für die Kanzlei" in result_text:
+        checklist_text = result_text.split("Empfohlene nächste Schritte für die Kanzlei")[-1]
+        for line in checklist_text.split("\n"):
+            line = line.strip()
+            if line.startswith(("☐", "☑")):
+                task = line.lstrip("☐☑ ").lstrip("* ").strip()
+                if task and not task.lower() in ["**", "zusammenfassende position:"]:
+                    checklist[task] = line.startswith("☑")
+    return checklist
 
 # ======================================
 # SESSION STATE
@@ -176,12 +179,7 @@ if "checklist" not in st.session_state:
 # SIDEBAR – Wörterbuch
 # ======================================
 st.sidebar.header("Anonymisierungs-Wörterbuch")
-st.sidebar.markdown("""
-Format: `Original = Ersatz`
-
-Beispiel:  
-`BMW AG = FirmaX`
-""")
+st.sidebar.markdown("Format: `Original = Ersatz`\n\nBeispiel:  `BMW AG = FirmaX`")
 dictionary_text = "\n".join(f"{k} = {v}" for k, v in sorted(st.session_state.dictionary.items()))
 edited_dictionary_text = st.sidebar.text_area("Wörterbuch bearbeiten", value=dictionary_text, height=300)
 
@@ -242,16 +240,7 @@ if st.session_state.anonymized_text:
         st.markdown(result)
 
         # Extrahiere Checklist
-        checklist_lines = []
-        if "Empfohlene nächste Schritte für die Kanzlei" in result:
-            checklist_text = result.split("Empfohlene nächste Schritte für die Kanzlei")[-1]
-            for line in checklist_text.split("\n"):
-                line = line.strip("- \u2022 ").strip()
-                if line:
-                    checklist_lines.append(line)
-        for task in checklist_lines:
-            if task not in st.session_state.checklist:
-                st.session_state.checklist[task] = False
+        st.session_state.checklist.update(parse_checklist(result))
 
         with st.expander("Verwendeter Prompt – Erklärung"):
             st.markdown("""

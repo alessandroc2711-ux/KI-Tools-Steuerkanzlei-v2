@@ -1,6 +1,6 @@
 """
-TAXPILOT AI – KI ASSISTENT FÜR STEUERKANZLEIEN
-LIVE AI VERSION MIT .ENV SUPPORT
+KanzleiOptimierer – Effiziente Mandantenfallbearbeitung
+LIVE VERSION MIT .ENV SUPPORT
 Mit vollständiger Selbstbedienungs-Oberfläche und erklärtem Prompt
 """
 
@@ -37,16 +37,16 @@ DEFAULT_DICT = {
 # ======================================
 # STREAMLIT CONFIG
 # ======================================
-st.set_page_config(page_title="TaxPilot AI", layout="wide")
-st.title("TaxPilot AI – KI Assistent für Steuerkanzleien")
+st.set_page_config(page_title="KanzleiOptimierer", layout="wide")
+st.title("KanzleiOptimierer – Effiziente Mandantenfallbearbeitung")
 st.markdown("""
-Willkommen bei **TaxPilot AI**.
+Willkommen bei **KanzleiOptimierer**.
 
 Dieses Tool ermöglicht eine **vollständig selbstbedienbare Nutzung**:
 
 - Upload und Anonymisierung von PDF- und Word-Dokumenten  
 - Bearbeitbares, manuelles Wörterbuch  
-- KI-gestützte steuerrechtliche Analyse  
+- Automatisierte steuerrechtliche Analyse  
 - Sofort einsetzbar für Kanzlei-Demos  
 
 Alle Schritte werden direkt in der Oberfläche erklärt.
@@ -105,7 +105,7 @@ def create_word(text, filename="document_anon.docx"):
 
 def create_checklist_word(checklist_items, filename="checklist.docx"):
     doc = Document()
-    doc.add_paragraph("TaxPilot AI – Aufgaben-Checkliste\n")
+    doc.add_paragraph("KanzleiOptimierer – Aufgaben-Checkliste\n")
     for task, checked in checklist_items.items():
         symbol = "☑" if checked else "☐"
         doc.add_paragraph(f"{symbol} {task}")
@@ -117,7 +117,7 @@ def create_checklist_word(checklist_items, filename="checklist.docx"):
 # ======================================
 def build_tax_prompt(case_text):
     prompt = f"""
-Du bist ein Senior-Steuerberater einer führenden deutschen Steuerkanzzlei.
+Du bist ein Senior-Steuerberater einer führenden deutschen Steuerkanzlei.
 
 Erstelle eine belastbare steuerrechtliche Fachanalyse.
 
@@ -149,18 +149,21 @@ def run_ai_analysis(prompt):
     return response.output_text
 
 # ======================================
-# CHECKLIST PARSING
+# CHECKLIST PARSING FUNZIONE OTTIMIZZATA
 # ======================================
 def parse_checklist(result_text):
     checklist = {}
     if "Empfohlene nächste Schritte für die Kanzlei" in result_text:
         checklist_text = result_text.split("Empfohlene nächste Schritte für die Kanzlei")[-1]
         for line in checklist_text.split("\n"):
-            line = line.strip()
-            if line.startswith(("☐", "☑")):
-                task = line.lstrip("☐☑ ").lstrip("* ").strip()
-                if task and not task.lower() in ["**", "zusammenfassende position:"]:
-                    checklist[task] = line.startswith("☑")
+            task = line.strip()
+            # ignora righe vuote o intestazioni
+            if not task or task.lower() in ["**", "zusammenfassende position:"]:
+                continue
+            if all(c in "*-: " for c in task):
+                continue
+            # aggiungi task come non completato di default
+            checklist[task] = False
     return checklist
 
 # ======================================
@@ -229,23 +232,23 @@ if st.session_state.anonymized_text:
 # STEP 3 – AI ANALYSIS
 # ======================================
 if st.session_state.anonymized_text:
-    st.header("2. KI Steueranalyse")
-    st.info("Die KI erstellt eine vollständige steuerliche Auswertung des anonymisierten Falls.")
-    if st.button("KI Analyse starten"):
-        with st.spinner("KI analysiert den Fall..."):
+    st.header("2. Steuerliche Analyse")
+    st.info("Das Tool erstellt eine vollständige steuerliche Auswertung des anonymisierten Falls.")
+    if st.button("Analyse starten"):
+        with st.spinner("Analyse läuft..."):
             prompt = build_tax_prompt(st.session_state.anonymized_text)
             result = run_ai_analysis(prompt)
         st.success("Analyse abgeschlossen")
         st.subheader("Analyseergebnis")
         st.markdown(result)
 
-        # Extrahiere Checklist
+        # Estratto e aggiornamento checklist
         st.session_state.checklist.update(parse_checklist(result))
 
         with st.expander("Verwendeter Prompt – Erklärung"):
             st.markdown("""
 **Was ist ein Prompt?**  
-Ein Prompt ist die professionelle Fachanweisung an die KI.
+Ein Prompt ist die professionelle Fachanweisung an das Tool.
 
 **Warum ist das relevant?**
 - vollständige Nachvollziehbarkeit

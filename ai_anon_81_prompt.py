@@ -304,7 +304,8 @@ for task in list(st.session_state.checklist.keys()):
 if st.button("Checkliste als Word herunterladen"):
     checklist_file = create_checklist_word(st.session_state.checklist)
     with open(checklist_file, "rb") as f:
-        st.download_button("Download Checklist", data=f, file_name=checklist_file)"""
+        st.download_button("Download Checklist", data=f, file_name=checklist_file)
+"""
 TAXPILOT AI – KI ASSISTENT FÜR STEUERKANZLEIEN
 LIVE AI VERSION MIT .ENV SUPPORT
 Mit vollständiger Selbstbedienungs-Oberfläche und erklärtem Prompt

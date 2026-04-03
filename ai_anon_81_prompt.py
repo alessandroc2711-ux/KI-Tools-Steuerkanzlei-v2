@@ -220,7 +220,7 @@ if st.session_state.original_text:
 
 if st.session_state.anonymized_text:
     st.subheader("Anonymisierter Text")
-    st.session_state.anonymized_text = st.text_area("Bearbeitbarer Text – die Bearbeitung erfolgt basierend auf dem Anonymisierungs-Wörterbuch", st.session_state.anonymized_text, height=300)
+    st.session_state.anonymized_text = st.text_area("Bearbeitbarer Text – eine automatische Bearbeitung erfolgt basierend auf dem Anonymisierungs-Wörterbuch", st.session_state.anonymized_text, height=300)
     if st.button("Text erneut anonymisieren"):
         st.session_state.anonymized_text = anonymize_text(st.session_state.original_text, st.session_state.dictionary)
         st.success("Text aktualisiert")

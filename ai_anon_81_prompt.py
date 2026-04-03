@@ -27,6 +27,7 @@ client = OpenAI(api_key=API_KEY)
 # CONFIG
 # ======================================
 DICT_FILE = "dictionary.json"
+
 DEFAULT_DICT = {
     "Alessandro Codazzi": "MitarbeiterX",
     "Firma AG": "FirmaY",
@@ -38,16 +39,18 @@ DEFAULT_DICT = {
 # STREAMLIT CONFIG
 # ======================================
 st.set_page_config(page_title="KanzleiOptimierer", layout="wide")
+
 st.title("KanzleiOptimierer – Effiziente Mandantenfallbearbeitung")
+
 st.markdown("""
 Willkommen bei **KanzleiOptimierer**.
 
 Dieses Tool ermöglicht eine **vollständig selbstbedienbare Nutzung**:
 
-- Upload und Anonymisierung von PDF- und Word-Dokumenten  
-- Bearbeitbares, manuelles Anonymisierungs-Wörterbuch  
-- Automatisierte steuerrechtliche Analyse  
-- Sofort einsetzbar für Kanzlei-Demos  
+- Upload und Anonymisierung von PDF- und Word-Dokumenten
+- Bearbeitbares, manuelles Anonymisierungs-Wörterbuch
+- Automatisierte steuerrechtliche Analyse
+- Sofort einsetzbar für Kanzlei-Demos
 
 Alle Schritte werden direkt in der Oberfläche erklärt.
 """)
@@ -61,17 +64,28 @@ def load_dictionary():
             dictionary = json.load(f)
     else:
         dictionary = DEFAULT_DICT.copy()
+
     return dict(sorted(dictionary.items()))
+
 
 def save_dictionary(dictionary):
     sorted_dict = dict(sorted(dictionary.items()))
+
     with open(DICT_FILE, "w", encoding="utf-8") as f:
-        json.dump(sorted_dict, f, indent=4, ensure_ascii=False)
+        json.dump(
+            sorted_dict,
+            f,
+            indent=4,
+            ensure_ascii=False
+        )
+
 
 def anonymize_text(text, dictionary):
     for original, replacement in dictionary.items():
         text = text.replace(original, replacement)
+
     return text
+
 
 # ======================================
 # FILE EXTRACTION
@@ -79,37 +93,136 @@ def anonymize_text(text, dictionary):
 def extract_pdf_text(file_pdf):
     file_pdf.seek(0)
     content = file_pdf.read()
-    pdf = fitz.open(stream=content, filetype="pdf")
-    text = "".join(page.get_text() for page in pdf)
+
+    pdf = fitz.open(
+        stream=content,
+        filetype="pdf"
+    )
+
+    text = "".join(
+        page.get_text() for page in pdf
+    )
 
     if text.strip():
         return text
 
     images = convert_from_bytes(content)
+
     text = "\n".join(
-        pytesseract.image_to_string(img, lang="deu")
+        pytesseract.image_to_string(
+            img,
+            lang="deu"
+        )
         for img in images
     )
+
     return text
+
 
 def extract_word_text(file_docx):
     file_docx.seek(0)
+
     doc = Document(file_docx)
+
     return "\n".join(
         para.text for para in doc.paragraphs
     )
 
+
 # ======================================
-# WORD EXPORT
+# WORD EXPORT – OPTIMIERT
 # ======================================
 def create_word(text, filename="document_anon.docx"):
     doc = Document()
 
-    for line in text.split("\n"):
-        doc.add_paragraph(line)
+    lines = text.split("\n")
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Heading
+        if line.startswith("# "):
+            doc.add_heading(
+                line.replace("# ", ""),
+                level=1
+            )
+
+        # Bullet list
+        elif line.startswith("- "):
+            doc.add_paragraph(
+                line[2:],
+                style="List Bullet"
+            )
+
+        # Numbered list
+        elif len(line) > 2 and line[0].isdigit() and line[1] == ".":
+            doc.add_paragraph(
+                line,
+                style="List Number"
+            )
+
+        # Markdown table
+        elif line.startswith("|") and line.endswith("|"):
+            table_lines = []
+
+            while i < len(lines):
+                current = lines[i].strip()
+
+                if current.startswith("|") and current.endswith("|"):
+                    table_lines.append(current)
+                    i += 1
+                else:
+                    break
+
+            cleaned_lines = [
+                row for row in table_lines
+                if "---" not in row
+            ]
+
+            if cleaned_lines:
+                headers = [
+                    cell.strip()
+                    for cell in cleaned_lines[0].split("|")[1:-1]
+                ]
+
+                table = doc.add_table(
+                    rows=1,
+                    cols=len(headers)
+                )
+
+                hdr_cells = table.rows[0].cells
+
+                for idx, header in enumerate(headers):
+                    hdr_cells[idx].text = header
+
+                for row_line in cleaned_lines[1:]:
+                    row_cells = table.add_row().cells
+
+                    values = [
+                        cell.strip()
+                        for cell in row_line.split("|")[1:-1]
+                    ]
+
+                    for idx, value in enumerate(values):
+                        row_cells[idx].text = value
+
+            continue
+
+        # Empty line
+        elif line == "":
+            doc.add_paragraph("")
+
+        # Normal text
+        else:
+            doc.add_paragraph(line)
+
+        i += 1
 
     doc.save(filename)
+
     return filename
+
 
 # ======================================
 # PROMPT ENGINEERING
@@ -177,6 +290,7 @@ Mandantenfall:
 """
     return prompt
 
+
 # ======================================
 # OPENAI CALL
 # ======================================
@@ -185,7 +299,9 @@ def run_ai_analysis(prompt):
         model="gpt-4.1",
         input=prompt
     )
+
     return response.output_text
+
 
 # ======================================
 # SESSION STATE
@@ -199,10 +315,12 @@ if "original_text" not in st.session_state:
 if "anonymized_text" not in st.session_state:
     st.session_state.anonymized_text = ""
 
+
 # ======================================
-# SIDEBAR – Wörterbuch
+# SIDEBAR
 # ======================================
 st.sidebar.header("Anonymisierungs-Wörterbuch")
+
 st.sidebar.markdown(
     "Format: `Original = Ersatz`\n\nBeispiel: `BMW AG = FirmaX`"
 )
@@ -246,6 +364,7 @@ if st.sidebar.button("Wörterbuch speichern"):
         "Wörterbuch gespeichert und Text aktualisiert"
     )
 
+
 # ======================================
 # STEP 1 – FILE UPLOAD
 # ======================================
@@ -263,16 +382,19 @@ if uploaded_file is not None and st.button("Dokument verarbeiten"):
         text = extract_word_text(uploaded_file)
 
     st.session_state.original_text = text
+
     st.session_state.anonymized_text = anonymize_text(
         text,
         st.session_state.dictionary
     )
 
+
 # ======================================
-# STEP 2 – TEXT ANZEIGE
+# STEP 2 – TEXT
 # ======================================
 if st.session_state.original_text:
     st.subheader("Originaltext")
+
     st.text_area(
         "Original",
         st.session_state.original_text,
@@ -293,6 +415,7 @@ if st.session_state.anonymized_text:
             st.session_state.original_text,
             st.session_state.dictionary
         )
+
         st.success("Text aktualisiert")
 
     filename = create_word(
@@ -305,6 +428,7 @@ if st.session_state.anonymized_text:
             data=f,
             file_name=filename
         )
+
 
 # ======================================
 # STEP 3 – ANALYSE

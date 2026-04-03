@@ -45,7 +45,7 @@ Willkommen bei **KanzleiOptimierer**.
 Dieses Tool ermöglicht eine **vollständig selbstbedienbare Nutzung**:
 
 - Upload und Anonymisierung von PDF- und Word-Dokumenten  
-- Bearbeitbares, manuelles Wörterbuch  
+- Bearbeitbares, manuelles Anonymisierungs-Wörterbuch  
 - Automatisierte steuerrechtliche Analyse  
 - Sofort einsetzbar für Kanzlei-Demos  
 

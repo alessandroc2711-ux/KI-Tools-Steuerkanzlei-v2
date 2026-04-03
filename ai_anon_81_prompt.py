@@ -1,7 +1,7 @@
 """
 KanzleiOptimierer – Effiziente Mandantenfallbearbeitung
 LIVE VERSION MIT .ENV SUPPORT
-Mit vollständiger Selbstbedienungs-Oberfläche und erklärtem Prompt
+Mit vollständiger Selbstbedienungs-Oberfläche
 """
 
 import os
@@ -149,7 +149,7 @@ def run_ai_analysis(prompt):
     return response.output_text
 
 # ======================================
-# CHECKLIST PARSING FUNZIONE OTTIMIZZATA
+# CHECKLIST PARSING
 # ======================================
 def parse_checklist(result_text):
     checklist = {}
@@ -157,12 +157,10 @@ def parse_checklist(result_text):
         checklist_text = result_text.split("Empfohlene nächste Schritte für die Kanzlei")[-1]
         for line in checklist_text.split("\n"):
             task = line.strip()
-            # ignora righe vuote o intestazioni
             if not task or task.lower() in ["**", "zusammenfassende position:"]:
                 continue
             if all(c in "*-: " for c in task):
                 continue
-            # aggiungi task come non completato di default
             checklist[task] = False
     return checklist
 
@@ -220,7 +218,11 @@ if st.session_state.original_text:
 
 if st.session_state.anonymized_text:
     st.subheader("Anonymisierter Text")
-    st.session_state.anonymized_text = st.text_area("Bearbeitbarer Text – eine automatische Bearbeitung erfolgt basierend auf dem Anonymisierungs-Wörterbuch", st.session_state.anonymized_text, height=300)
+    st.session_state.anonymized_text = st.text_area(
+        "Bearbeitbarer Text – eine automatische Bearbeitung erfolgt basierend auf dem Anonymisierungs-Wörterbuch",
+        st.session_state.anonymized_text,
+        height=300
+    )
     if st.button("Text erneut anonymisieren"):
         st.session_state.anonymized_text = anonymize_text(st.session_state.original_text, st.session_state.dictionary)
         st.success("Text aktualisiert")
@@ -229,7 +231,7 @@ if st.session_state.anonymized_text:
         st.download_button("Word herunterladen", data=f, file_name=filename)
 
 # ======================================
-# STEP 3 – AI ANALYSIS
+# STEP 3 – STEUERLICHE ANALYSE
 # ======================================
 if st.session_state.anonymized_text:
     st.header("2. Steuerliche Analyse")
@@ -244,20 +246,6 @@ if st.session_state.anonymized_text:
 
         # Estratto e aggiornamento checklist
         st.session_state.checklist.update(parse_checklist(result))
-
-        with st.expander("Verwendeter Prompt – Erklärung"):
-            st.markdown("""
-**Was ist ein Prompt?**  
-Ein Prompt ist die professionelle Fachanweisung an das Tool.
-
-**Warum ist das relevant?**
-- vollständige Nachvollziehbarkeit
-- auditierbare Arbeitsweise
-- konsistente Qualitätsstandards
-
-**Prompt-Inhalt:**
-""")
-            st.code(prompt)
 
 # ======================================
 # STEP 4 – DYNAMISCHE CHECKLIST

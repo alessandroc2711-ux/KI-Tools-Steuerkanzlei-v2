@@ -467,7 +467,7 @@ if st.session_state.anonymized_text:
 
         with open(filename_analysis, "rb") as f:
             st.download_button(
-                "Analyse als Word herunterladen",
+                "Analyse als Word herunterladen (Optional)",
                 data=f,
                 file_name=filename_analysis
             )

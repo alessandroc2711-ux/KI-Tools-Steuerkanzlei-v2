@@ -415,7 +415,7 @@ if st.session_state.anonymized_text:
         height=300
     )
 
-    if st.button("Text erneut anonymisieren"):
+    if st.button("Text erneut anonymisieren (Optional)"):
         st.session_state.anonymized_text = anonymize_text(
             st.session_state.original_text,
             st.session_state.dictionary
@@ -429,7 +429,7 @@ if st.session_state.anonymized_text:
 
     with open(filename, "rb") as f:
         st.download_button(
-            "Word herunterladen",
+            "Word herunterladen (Optional)",
             data=f,
             file_name=filename
         )

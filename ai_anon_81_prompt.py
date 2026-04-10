@@ -29,10 +29,18 @@ client = OpenAI(api_key=API_KEY)
 DICT_FILE = "dictionary.json"
 
 DEFAULT_DICT = {
-    "Alessandro Codazzi": "MitarbeiterX",
-    "Firma AG": "FirmaY",
-    "München": "OrtX",
-    "15. März 2026": "DatumX"
+    "Alexander Codazzi": "MANDANT_A",
+    "Siemens Energy AG": "ARBEITGEBER_1",
+    "BMW AG": "FIRMA_1",
+    "Allianz SE": "FIRMA_2",
+    "Deutsche Bank AG": "BANK_1",
+    "Upwork": "PLATTFORM_1",
+    "Thomas Berger": "PERSON_1",
+    "Julia Berger": "PERSON_2",
+    "Blumenstraße 12, 80331 München": "ADRESSE_1",
+    "Maxvorstadt 45, 80799 München": "ADRESSE_2",
+    "Sonnenstraße 88, 80331 München": "ADRESSE_3",
+    "BMW Leasing": "FAHRZEUGLEASING_1"
 }
 
 # ======================================
@@ -50,9 +58,6 @@ Dieses Tool ermöglicht eine **vollständig selbstbedienbare Nutzung**:
 - Upload und Anonymisierung von PDF- und Word-Dokumenten
 - Bearbeitbares, manuelles Anonymisierungs-Wörterbuch
 - Automatisierte steuerrechtliche Analyse
-- Sofort einsetzbar für Kanzlei-Demos
-
-Alle Schritte werden direkt in der Oberfläche erklärt.
 """)
 
 # ======================================
